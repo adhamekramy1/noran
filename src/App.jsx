@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
-import { cn } from './utils';
+import { Play, Pause } from 'lucide-react';
 
-const photos = Array.from({ length: 17 }, (_, i) => `./assets/photos/photo${i + 1}.jpeg`);
+const assetUrl = (path) => `${import.meta.env.BASE_URL}${path}`;
+const photos = Array.from({ length: 17 }, (_, i) => assetUrl(`assets/photos/photo${i + 1}.jpeg`));
 
 const captions = [
   "Simply beautiful. ❤️",
@@ -108,26 +108,41 @@ function Opening({ onStart }) {
 }
 
 function MusicPlayer() {
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.play().catch(e => console.log('Audio autoplay blocked:', e));
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
     }
   }, []);
 
-  const togglePlay = () => {
-    if (isPlaying) audioRef.current.pause();
-    else audioRef.current.play();
-    setIsPlaying(!isPlaying);
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    try {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch {
+      setIsPlaying(false);
+    }
   };
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <audio ref={audioRef} src={`${import.meta.env.BASE_URL}assets/music/song.mp3`} loop />
+      <audio ref={audioRef} src={assetUrl('assets/music/song.mp3')} loop />
       <button 
         onClick={togglePlay}
+        type="button"
+        aria-label={isPlaying ? 'Pause music' : 'Play music'}
         className="w-12 h-12 flex items-center justify-center rounded-full glass hover:bg-white/10 transition-colors"
       >
         {isPlaying ? <Pause size={20} className="text-white/80" /> : <Play size={20} className="text-white/80 ml-1" />}
@@ -243,7 +258,7 @@ function CinematicPhoto({ photo, caption, index }) {
       <div className="overflow-hidden bg-white/5">
         <img 
           src={photo} 
-          alt="Noran" 
+          alt={`Noran - ${caption}`}
           className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
         />
       </div>
@@ -295,6 +310,8 @@ function SecretMessage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={() => setRevealed(true)}
+              type="button"
+              aria-expanded={revealed}
               className="px-8 py-3 rounded-full border border-pink-500/30 text-pink-200 hover:bg-pink-500/10 transition-colors font-sans tracking-wide"
             >
               في حاجة صغيرة ليكي...
